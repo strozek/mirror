@@ -1,0 +1,180 @@
+<%= erb :header %>
+
+		<div id="wrap">
+
+			<%= erb :menubar %>
+
+			<div class="container">
+
+				<!-- Feedback alert panel -->
+				<div id="mainAlert" class="hidden alert alert-danger">
+					<button type="button" class="close" onclick="$('#mainAlert').addClass('hidden')" aria-hidden="true">&times;</button>
+					<span id="mainFeedback"></span>
+				</div>
+
+				<!-- Complete profile -->
+				<% if(@user.name==nil || !@user.passwordChanged) %>
+				<h4>
+					Please complete your profile
+					<br>
+					<br>
+				</h4>
+				<form class="form-horizontal" role="form">
+					<div class="form-group">
+						<label for="name" class="col-sm-2 control-label">Full Name</label>
+						<div class="col-sm-5">
+							<input type="email" id="name" class="form-control" value="<%= @user.name %>"placeholder="Your Full Name">
+						</div>
+						<div class="col-sm-4">
+							<span id="nameFeedback">&nbsp;</span>
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="password" class="col-sm-2 control-label">New Password</label>
+						<div class="col-sm-5">
+							<input type="password" id="password" class="form-control" placeholder="Create a New Password">
+						</div>
+						<div class="col-sm-4">
+							<span id="passwordFeedback">&nbsp;</span>
+						</div>
+					</div>
+				</form>
+				<% else %>
+				<h4>
+					Welcome, <%= @user.name %>
+					<%= if(@user.teamName); "<br><span class='small'>#{@user.teamName}</span>"; end %>
+				</h4>
+				<% end %>
+				<div class="panel panel-primary hidden" id="feedbackPanel">
+					<div class="panel-heading">
+						<h3 class="panel-title">Provide Feedback</h3>
+					</div>
+					<div class="panel-body">
+
+						<form class="form-horizontal" role="form">
+							<div class="form-group">
+								<label for="recipientSelect" class="col-sm-2 control-label">For whom?</label>
+								<div class="col-sm-5">
+									<select id="recipientSelect" class="form-control">
+										<option value="" disabled selected>Select the recipient</option>
+									</select>
+								</div>
+							</div>
+							<div class="form-group">
+								<label for="badges" class="col-sm-2 control-label">Badges (optional)</label>
+								<div class="btn-group-vertical col-sm-5" data-toggle="buttons" id="badges">
+								</div>
+							</div>
+							<div class="form-group">
+								<label for="feedbackText" id="feedbackTextLabel" class="col-sm-2 control-label">Feedback</label>
+								<div class="col-sm-5">
+									<textarea id="feedbackText" rows="5" class="noResize form-control"></textarea>
+								</div>
+							</div>
+							<% if(@user.senderScope==1) %>
+							<div class="form-group">
+								<div class="col-sm-offset-2 col-sm-5">
+									<div class="checkbox">
+										<label>
+											<input id="anonymous" type="checkbox" <%= if(@user.recipientScope==3); 'checked'; end %> > Anonymous?
+										</label>
+									</div>
+								</div>
+							</div>
+							<% end %>
+							<div class="form-group">
+								<div class="col-sm-offset-2 col-sm-2">
+									<button type="button" id="sendFeedbackButton" class="btn btn-primary disabled" data-loading-text="Saving...">Give Feedback</button>
+								</div>
+								<div class="col-sm-3">
+									<span id="sendFeedbackFeedback">&nbsp;</span>
+								</div>
+							</div>
+						</form>
+
+					</div>
+				</div>
+
+			</div>	
+		</div>
+
+		<%= erb :scripts %>
+		<script>
+
+			$(document).ready(function(){
+				$('#navbarHome').addClass('active');
+				$('#name') && $('#name').on('focus', function(){
+					$('#nameFeedback').removeClass().html('&nbsp;');
+				});
+				$('#name') && $('#name').on('blur', function(){
+					post(	'/editname',
+								{name: $('#name').val()},
+								{alertLabelId:'#nameFeedback'},
+								function(data)
+								{
+									$('#nameFeedback').addClass('label label-success glyphicon glyphicon-ok');
+								});
+				})
+				$('#password') && $('#password').on('focus', function(){
+					$('#passwordFeedback').removeClass().html('&nbsp;');
+				});
+				$('#password') && $('#password').on('blur', function(){
+					post(	'/editpassword',
+								{password: $('#password').val()},
+								{alertLabelId:'#passwordFeedback'},
+								function(data)
+								{
+									$('#passwordFeedback').addClass('label label-success glyphicon glyphicon-ok');
+								});
+				})
+				$('#recipientSelect').on('change', function() {
+					if($('#recipientSelect').val!='')
+					{
+						$('#sendFeedbackButton').removeClass('disabled');
+					}
+				});
+			<% @user.membersNotMe.each { |member| %>
+				$('#recipientSelect').append($('<option>', {value: '<%= member[:id] %>', text: '<%= member[:name] %>'}));
+			<% } %>
+				var badge;
+			<% @user.badges.each { |badge| %>
+				badge = document.createElement('label');
+				badge.innerHTML = '<input type="checkbox"> <%= badge[:name] %>';
+				badge.className = 'btn btn-default selectable';
+				badge.id = 'b<%= badge[:id] %>';
+				document.getElementById('badges').appendChild(badge);
+			<% } %>
+				$('#sendFeedbackButton').on('click', function(){
+					$('#sendFeedbackFeedback').removeClass().html('&nbsp;');
+					var badges = [];
+					$('.selectable.active').each(function(i) {
+						badges.push($(this).attr('id').substring(1));
+					});
+					post(	'/send',
+								{	recipient: $('#recipientSelect').val(),
+									badges: badges.join(','),
+									feedback: $('#feedbackText').val(),
+									anonymous: $('#anonymous') && $('#anonymous').is(':checked')},
+								{alertLabelId:'#sendFeedbackFeedback', buttonId:'#sendFeedbackButton'},
+								function(data)
+								{
+									$('#sendFeedbackFeedback').addClass('label label-success glyphicon glyphicon-ok');
+									// TODO: This is a hack - somehow the button is re-enabled after this callback completes
+									setTimeout(function(){
+										$('.selectable.active').each(function(i) {
+											var id = $(this).attr('id');
+											$('#'+id).button('toggle');
+										});
+										$('#feedbackText').val('');
+										$('#recipientSelect').val('');
+										$('#anonymous') && $('#anonymous').prop('checked', <%= if(@user.recipientScope==3); 'true'; else; 'false'; end %>);
+										$('#sendFeedbackButton').addClass('disabled')
+									}, 10);
+								});
+				});
+				$('#feedbackPanel').removeClass('hidden');
+			});
+
+		</script>
+	</body>
+</html>

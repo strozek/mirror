@@ -1,0 +1,148 @@
+<%= erb :header %>
+
+		<div id="wrap">
+
+			<%= erb :menubar %>
+
+			<div class="container">
+
+				<!-- Feedback alert panel -->
+				<div id="mainAlert" class="hidden alert alert-danger">
+					<button type="button" class="close" onclick="$('#mainAlert').addClass('hidden')" aria-hidden="true">&times;</button>
+					<span id="mainFeedback"></span>
+				</div>
+
+				<h4>
+					<% if(@user.teamName) %>
+					<%= @user.teamName %> Stats
+					<% else %>
+					Team Stats
+					<% end %>
+				</h4>
+
+	    	<table class="table table-bordered">
+	    		<tr>
+	    			<th> </th>
+	    			<th> My stats </th>
+	    			<th> Team stats </th>
+	    		</tr>
+	    		<tr class="active">
+	    			<th colspan="3"> Received in the past 30 days... </th>
+	    		</tr>
+	    		<tr>
+	    			<th> </th>
+	    			<td>
+	    				<% if((s=@user.stats[:iReceived])!=nil) %>
+	    					I received <span class="text text-primary"><%= s %></span> item<%= s==1?'':'s' %>
+	    				<% else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    			<td>
+	    				<% if((s=@user.stats[:teamReceivedAndSent])!=nil) %>
+	    					Team average <span class="text text-primary"><%= s %></span> item<%= s==1?'':'s' %>
+	    				<% else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    		</tr>
+	    		<tr>
+	    			<th> </th>
+	    			<td>
+	    				<% if(s=@user.stats[:iReceivedByMember]); s.each { |member| %>
+	    					I received <%= c=member[:count] %> item<%= c==1?'':'s' %> from <%= member[:name] %><br>
+	    				<% }; else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    			<td>
+	    				<% if(s=@user.stats[:teamReceivedByMember]); s.each { |member| %>
+	    					Average member received <%= c=member[:count] %> item<%= c==1?'':'s' %> from <%= member[:name] %><br>
+	    				<% }; else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    		</tr>
+	    		<tr>
+	    			<th> </th>
+	    			<td>
+	    				<% if(s=@user.stats[:badgesIReceived]); s.each { |badge| %>
+	    					I received <%= c=badge[:count] %> <%= badge[:name] %> badge<%= c==1?'':'s' %><br>
+	    				<% }; else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    			<td>
+	    				<% if(s=@user.stats[:badgesTeamReceivedAndSent]); s.each { |badge| %>
+	    					Average member received <%= c=badge[:count] %> <%= badge[:name] %> badge<%= c==1?'':'s' %><br>
+	    				<% }; else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    		</tr>
+	    		<tr class="active">
+	    			<th colspan="3"> Sent in the past 30 days... </th>
+	    		</tr>
+	    		<tr>
+	    			<th> </th>
+	    			<td>
+	    				I sent <span class="text text-primary"><%= c=@user.stats[:iSent] %></span> item<%= c==1?'':'s' %> 
+	    			</td>
+	    			<td>
+	    				<% if((s=@user.stats[:teamReceivedAndSent])!=nil) %>
+	    					Team average <span class="text text-primary"><%= s %></span> item<%= s==1?'':'s' %>
+	    				<% else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    		</tr>
+	    		<tr>
+	    			<th> </th>
+	    			<td>
+	    				<% @user.stats[:iSentByMember].each { |member| %>
+	    					I sent <%= c=member[:count] %> item<%= c==1?'':'s' %> to <%= member[:name] %><br>
+	    				<% } %>
+	    			</td>
+	    			<td>
+	    				<% if(s=@user.stats[:teamSentByMember]); s.each { |member| %>
+	    					Average member sent <%= c=member[:count] %> item<%= c==1?'':'s' %> to <%= member[:name] %><br>
+	    				<% }; else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    		</tr>
+	    		<tr>
+	    			<th> </th>
+	    			<td>
+	    				<% if(s=@user.stats[:badgesIAwarded]); s.each { |badge| %>
+	    					I awarded <%= c=badge[:count] %> <%= badge[:name] %> badge<%= c==1?'':'s' %><br>
+	    				<% }; else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    			<td>
+	    				<% if(s=@user.stats[:badgesTeamReceivedAndSent]); s.each { |badge| %>
+	    					Average member awarded <%= c=badge[:count] %> <%= badge[:name] %> badge<%= c==1?'':'s' %><br>
+	    				<% }; else %>
+	    					<span class="text text-muted">N/A</span>
+	    				<% end %>
+	    			</td>
+	    		</tr>
+	    	</table>
+
+	    	<table class="table table-bordered table-condensed">
+    			<%= @user.last30DaysGraph %>
+	    	</table>
+			</div>	
+		</div>
+
+		<%= erb :scripts %>
+		<script>
+
+			$(document).ready(function(){
+				$('#navbarStats').addClass('active');
+			});
+
+		</script>
+	</body>
+</html>

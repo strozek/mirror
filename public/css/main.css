@@ -1,0 +1,37 @@
+html,
+body {
+  height: 100%;
+}
+
+#wrap {
+  min-height: 100%;
+  height: auto;
+  margin: 0 auto -60px;
+  padding: 0 0 60px;
+}
+
+#wrap > .container {
+  padding: 0px 15px 0;
+}
+.container .text-muted {
+  margin: 20px 0;
+}
+
+.opaque {
+  opacity: 0.2;
+}
+
+.noResize {
+  resize: none;
+}
+
+.selectable {
+}
+
+.badge-important {
+	background-color:#b94a48;
+}
+
+.rightAlign {
+  text-align: right;
+}

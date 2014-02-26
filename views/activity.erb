@@ -1,0 +1,161 @@
+<%= erb :header %>
+
+		<div id="wrap">
+
+			<%= erb :menubar %>
+
+			<div class="container">
+
+				<!-- Feedback alert panel -->
+				<div id="mainAlert" class="hidden alert alert-danger">
+					<button type="button" class="close" onclick="$('#mainAlert').addClass('hidden')" aria-hidden="true">&times;</button>
+					<span id="mainFeedback"></span>
+				</div>
+
+				<h4>
+					<% if(@user.teamName) %>
+					<%= @user.teamName %> Activity
+					<% else %>
+					Team Activity
+					<% end %>
+				</h4>
+
+	      <!-- Date Filter -->
+	      <div class="btn-group">
+	        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+	          <span id="daysFilterLabel"></span>
+	          <span class="caret"></span>
+	        </button>
+	        <ul class="dropdown-menu">
+	          <li><a  id="daysFilterall"
+	                  href="javascript:filterBy('days', 'all', true)">All Feedback</a></li>
+	          <li><a  id="daysFilter30"
+	                  href="javascript:filterBy('days', '30', true)">Last 30 days</a></li>
+	          <li><a  id="daysFilter7"
+	                  href="javascript:filterBy('days', '7', true)">Last 7 days</a></li>
+	        </ul>
+	      </div>
+
+	      <!-- Sender Filter -->
+	      <div class="btn-group">
+	        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+	          <span id="senderFilterLabel"></span>
+	          <span class="caret"></span>
+	        </button>
+	        <ul class="dropdown-menu">
+	          <li><a  id="senderFilterall"
+	                  href="javascript:filterBy('sender', 'all', true)">From everyone</a></li>
+	          <li><a  id="senderFilterallbutme"
+	                  href="javascript:filterBy('sender', 'allbutme', true)">From everyone but me</a></li>
+	          <li><a  id="senderFilter<%= @user.id %>"
+	                  href="javascript:filterBy('sender', '<%= @user.id %>', true)"><span class="text text-primary">From me</span></a></li>
+	          <li><a  id="senderFilteranonymous"
+	                  href="javascript:filterBy('sender', 'anonymous', true)"><span class="text text-muted">anonymous</span></a></li>
+	        <% @user.membersNotMe.each { |member| %>
+	          <li><a 	id="senderFilter<%= member[:id] %>"
+	                  href="javascript:filterBy('sender', '<%= member[:id] %>', true)">From <%= member[:name] %></a></li>
+	        <% } %>
+	        </ul>
+	      </div>
+
+	      <!-- Recipient Filter -->
+	      <div class="btn-group">
+	        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+	          <span id="recipientFilterLabel"></span>
+	          <span class="caret"></span>
+	        </button>
+	        <ul class="dropdown-menu">
+	          <li><a  id="recipientFilterall"
+	                  href="javascript:filterBy('recipient', 'all', true)">To everyone</a></li>
+	          <li><a  id="recipientFilter<%= @user.id %>"
+	                  href="javascript:filterBy('recipient', '<%= @user.id %>', true)"><span class="text text-primary">To me</span></a></li>
+	        <% @user.membersNotMe.each { |member| %>
+	          <li><a 	id="recipientFilter<%= member[:id] %>"
+	                  href="javascript:filterBy('recipient', '<%= member[:id] %>', true)">To <%= member[:name] %></a></li>
+	        <% } %>
+	        </ul>
+	      </div>
+
+	      <p>
+				<table id="feedbackTable" class="table table-condensed">
+				</table>
+				</p>
+
+			</div>	
+		</div>
+
+		<%= erb :scripts %>
+		<script>
+
+			var _table = '';
+			var _filter = {};
+
+			function clearTable()
+			{
+				_table = '';
+			}
+
+			function addHeaderRow()
+			{
+				_table += '<tr><th> Date </th><th> From </th><th> To </th><th> Badges </th><th> Feedback </th></tr>';
+			}
+
+			function addRow(row)
+			{
+				var badges = '';
+				for(var i in row.badges)
+				{
+					badges += '<span class="label label-default">'+row.badges[i]+'</span> ';
+				}
+				_table += '<tr><td> '+row.timestamp+' </td><td> '+row.sender+' </td><td> '+row.recipient+' </td><td> '+badges+' </td><td> '+row.text+' </td></tr>';
+			}
+
+			function finalizeTable()
+			{
+				$('#feedbackTable').html(_table);
+			}
+
+			function filterBy(field, filter, reload)
+			{
+				_filter[field] = filter;
+				var label = $('#'+field+'Filter'+filter).html();
+				$('#'+field+'FilterLabel').html(label);
+				if(reload)
+				{
+					$('#feedbackTable').addClass('opaque');
+					post(	'/getfeedback',
+								_filter,
+								{},
+								function(data) {
+									clearTable();
+									addHeaderRow();
+									for(var i in data.feedback)
+									{
+										addRow(data.feedback[i]);
+									}
+									finalizeTable();
+									$('#feedbackTable').removeClass('opaque');
+								});
+				}
+			}
+
+			$(document).ready(function(){
+				if('<%= @activity %>'=='my')
+				{
+					$('#navbarMyActivity').addClass('active');
+					filterBy('sender', 'all', false);
+					filterBy('recipient', '<%= @user.id %>', false);
+					filterBy('days', '7', true);
+				}
+				else
+				{
+					$('#navbarTeamActivity').addClass('active');
+					filterBy('sender', 'allbutme', false);
+					filterBy('recipient', 'all', false);
+					filterBy('days', '7', true);
+				}
+			});
+
+		</script>
+	</body>
+</html>

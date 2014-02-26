@@ -1,0 +1,47 @@
+	<script src="/js/vendor/jquery-1.10.2.min.js"></script>
+	<script src="/js/vendor/jquery.tokeninput.js" type="text/javascript"></script>
+	<script src="/js/vendor/bootstrap.min.js"></script>
+	<script src="/js/vendor/bootstrap-datepicker.js"></script>
+
+	<script language="javascript">
+
+		// Generic HTTP post request that handles callbacks and generic feedback field
+		function post(url, inputData, feedback, callback)
+		{
+		if(feedback)
+		{
+			if(feedback.alertId) {$(feedback.alertId).addClass('hidden');}
+			if(feedback.buttonId) {$(feedback.buttonId).button('loading');}
+			if(feedback.divId) {$(feedback.divId).addClass('opaque');}
+		}
+		$.ajax({url: url, type: 'POST', data: inputData, dataType: 'json'})
+			.done(function(data) {
+			if(data.success)
+			{
+				if(feedback)
+				{
+				if(feedback.buttonId)
+				{
+					$(feedback.buttonId).button('reset');
+					if(feedback.buttonText) {$(feedback.buttonId).html(feedback.buttonText);}
+				}
+				if(feedback.divId) {$(feedback.divId).removeClass('opaque');}
+				}
+				callback(data);
+			}
+			else if(feedback)
+			{
+				if(feedback.alertTextId) {$(feedback.alertTextId).html(data.message);}
+				if(feedback.alertLabelId) {$(feedback.alertLabelId).removeClass().addClass('label label-danger').html(data.message);}
+				if(feedback.alertId) {$(feedback.alertId).removeClass().addClass('alert').addClass('alert-danger');}
+				if(feedback.buttonId)
+				{
+				$(feedback.buttonId).button('reset');
+				if(feedback.buttonText) {$(feedback.buttonId).html(feedback.buttonText);}
+				}
+				if(feedback.divId) {$(feedback.divId).removeClass('opaque');}
+			}
+			})
+		}
+
+	</script>

@@ -1,0 +1,196 @@
+<%= erb :header %>
+
+		<div id="wrap">
+
+			<%= erb :menubar %>
+
+			<div class="container">
+
+				<!-- Feedback alert panel -->
+				<div id="mainAlert" class="hidden alert alert-danger">
+					<button type="button" class="close" onclick="$('#mainAlert').addClass('hidden')" aria-hidden="true">&times;</button>
+					<span id="mainFeedback"></span>
+				</div>
+
+	      <!-- Team administration -->
+				<h4>
+					Edit team
+					<br>
+					<br>
+				</h4>
+				<form class="form-horizontal" role="form">
+				  <div class="form-group">
+				    <label for="name" class="col-sm-2 control-label">Team name</label>
+				    <div class="col-sm-5">
+				      <input type="email" id="name" class="form-control" value="<%= @user.teamName %>" placeholder="Team name">
+				    </div>
+				    <div class="col-sm-4">
+				    	<span id="nameFeedback">&nbsp;</span>
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <label for="memberEmails" class="col-sm-2 control-label">Team members</label>
+				    <div class="col-sm-5">
+				      <input type="email" id="memberEmails" class="form-control" value="<%= @user.membersString %>" placeholder="Comma-separated emails of team members">
+				    </div>
+				    <div class="col-sm-4">
+				    	<span id="memberEmailsFeedback">&nbsp;</span>
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <label for="badges" class="col-sm-2 control-label">Badges</label>
+				    <div class="col-sm-5">
+				      <input type="text" id="badges" class="form-control" value="<%= @user.badgesString %>" placeholder="Comma-separated badge names">
+				    </div>
+				    <div class="col-sm-4">
+				    	<span id="badgesFeedback">&nbsp;</span>
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <label class="col-sm-2 control-label">Feedback settings</label>
+				    <div class="col-sm-5">
+				    	<table class="table table-bordered">
+				    		<tr>
+				    			<th>Admin</th>
+				    			<td><em>Can see everything</em></td>
+				    		</tr>
+				    		<tr>
+				    			<th>Sender</th>
+				    			<td>
+				    				<select id="senderScopeSelect" class="form-control">
+										  <option value="1">Can override anonymity</option>
+										  <option value="0">Can't override anonymity</option>
+										</select>
+										<span id="senderScopeFeedback">&nbsp;</span>
+									</td>
+				    		</tr>
+				    		<tr>
+				    			<th>Recipient</th>
+				    			<td>
+				    				<select id="recipientScopeSelect" class="form-control">
+										  <option value="4">Can see his/her feedback and sender name</option>
+										  <option value="3">Can see his/her feedback (anonymous)</option>
+										  <option value="1">Can only see totals/stats</option>
+										  <option value="0">Can't see anything</option>
+										</select>
+										<span id="recipientScopeFeedback">&nbsp;</span>
+				    			</td>
+				    		</tr>
+				    		<tr>
+				    			<th>Everyone</th>
+				    			<td>
+				    				<select id="everyoneScopeSelect" class="form-control">
+										  <option value="4">Can see everyone's feedback and sender name</option>
+										  <option value="3">Can see everyone's feedback (anonymous)</option>
+										  <option value="2">Can only see each member's totals/stats</option>
+										  <option value="1">Can only see team totals/stats</option>
+										  <option value="0">Can't see anything</option>
+										</select>
+										<span id="everyoneScopeFeedback">&nbsp;</span>
+				    			</td>
+				    		</tr>
+				    	</table>
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <div class="col-sm-offset-2 col-sm-5">
+				      <button type="button" id="sendEmailsButton" class="btn btn-default" data-loading-text="Working...">Send email invites</button>
+				    </div>
+				    <div class="col-sm-4">
+				    	<span id="sendEmailsFeedback">&nbsp;</span>
+				    </div>
+				  </div>
+				</form>
+
+			</div>	
+		</div>
+
+		<%= erb :scripts %>
+		<script>
+
+			$(document).ready(function(){
+				$('#senderScopeSelect').val('<%= @user.senderScope %>');
+				$('#recipientScopeSelect').val('<%= @user.recipientScope %>');
+				$('#everyoneScopeSelect').val('<%= @user.everyoneScope %>');
+				$('#navbarAdmin').addClass('active');
+	    	$('#name').on('focus', function(){
+					$('#nameFeedback').removeClass().html('&nbsp;');
+	    	});
+				$('#name').on('blur', function(){
+	    		post(	'/editteamname',
+	    					{name: $('#name').val()},
+	    					{alertLabelId:'#nameFeedback'},
+	    					function(data)
+	    					{
+	    						$('#nameFeedback').addClass('label label-success glyphicon glyphicon-ok');
+	    					});
+				});
+	    	$('#memberEmails').on('focus', function(){
+					$('#memberEmailsFeedback').removeClass().html('&nbsp;');
+	    	});
+				$('#memberEmails').on('blur', function(){
+	    		post(	'/editmembers',
+	    					{members: $('#memberEmails').val()},
+	    					{alertLabelId:'#memberEmailsFeedback'},
+	    					function(data)
+	    					{
+	    						$('#memberEmailsFeedback').addClass('label label-success glyphicon glyphicon-ok');
+	    					});
+				});
+	    	$('#badges').on('focus', function(){
+					$('#badgesFeedback').removeClass().html('&nbsp;');
+	    	});
+				$('#badges').on('blur', function() {
+	    		post(	'/editbadges',
+	    					{badges: $('#badges').val()},
+	    					{alertLabelId:'#badgesFeedback'},
+	    					function(data)
+	    					{
+	    						$('#badgesFeedback').addClass('label label-success glyphicon glyphicon-ok');
+	    					});
+				})
+				$('#senderScopeSelect').on('change', function(){
+					$('#senderScopeFeedback').removeClass().html('&nbsp;');
+	    		post(	'/editscope',
+	    					{field: 'sender', value: $('#senderScopeSelect').val()},
+	    					{alertLabelId:'#senderScopeFeedback'},
+	    					function(data)
+	    					{
+	    						$('#senderScopeFeedback').addClass('label label-success glyphicon glyphicon-ok');
+	    					});
+				});
+				$('#recipientScopeSelect').on('change', function(){
+					$('#recipientScopeFeedback').removeClass().html('&nbsp;');
+	    		post(	'/editscope',
+	    					{field: 'recipient', value: $('#recipientScopeSelect').val()},
+	    					{alertLabelId:'#recipientScopeFeedback'},
+	    					function(data)
+	    					{
+	    						$('#recipientScopeFeedback').addClass('label label-success glyphicon glyphicon-ok');
+	    					});
+				});
+				$('#everyoneScopeSelect').on('change', function(){
+					$('#everyoneScopeFeedback').removeClass().html('&nbsp;');
+	    		post(	'/editscope',
+	    					{field: 'everyone', value: $('#everyoneScopeSelect').val()},
+	    					{alertLabelId:'#everyoneScopeFeedback'},
+	    					function(data)
+	    					{
+	    						$('#everyoneScopeFeedback').addClass('label label-success glyphicon glyphicon-ok');
+	    					});
+				});
+				$('#sendEmailsButton').on('click', function(){
+					$('#sendEmailsFeedback').removeClass().html('&nbsp;');
+	    		post(	'/sendemails',
+	    					{},
+	    					{alertLabelId:'#sendEmailsFeedback', buttonId:'#sendEmailsButton'},
+	    					function(data)
+	    					{
+	    						$('#sendEmailsFeedback').addClass('label label-success glyphicon glyphicon-ok');
+	    					});
+				})
+			});
+
+		</script>
+	</body>
+</html>

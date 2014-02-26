@@ -1,0 +1,62 @@
+<%= erb :header %>
+
+		<div id="wrap">
+
+			<%= erb :menubar %>
+
+			<div class="container">
+
+	      <!-- Feedback alert panel -->
+	      <div id="mainAlert" class="hidden alert alert-danger">
+	        <button type="button" class="close" onclick="$('#mainAlert').addClass('hidden')" aria-hidden="true">&times;</button>
+	        <span id="mainFeedback"></span>
+	      </div>
+
+	      <!-- Log in form -->
+				<h4>
+					Please log in
+					<br>
+					<br>
+				</h4>
+				<form class="form-horizontal" role="form">
+				  <div class="form-group">
+				    <label for="email" class="col-sm-2 control-label">Email</label>
+				    <div class="col-sm-5">
+				      <input type="email" id="email" class="form-control" placeholder="Email">
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <label for="password" class="col-sm-2 control-label">Password</label>
+				    <div class="col-sm-5">
+				      <input type="password" id="password" class="form-control" placeholder="Password">
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <div class="col-sm-offset-2 col-sm-5">
+				      <button type="button" id="signinButton" class="btn btn-default" data-loading-text="Signing In...">Sign in</button>
+				    </div>
+				  </div>
+				</form>
+
+			</div>	
+		</div>
+
+		<%= erb :scripts %>
+		<script>
+
+	    $(document).ready(function(){
+	    	$('#navbarHome').addClass('active');
+	    	$('#email').focus();
+	    	$('#signinButton').on('click', function(){
+	    		post(	'/signin',
+	    					{email:$('#email').val(), password:$('#password').val()},
+	    					{alertId:'#mainAlert', alertTextId:'#mainFeedback', buttonId:'#signinButton'},
+	    					function(data) {
+	    						window.location = '<%= returnPage %>';
+	    					});
+	    	});
+	    });
+
+		</script>
+	</body>
+</html>
