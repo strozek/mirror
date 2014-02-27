@@ -34,12 +34,11 @@ class Mirror < Sinatra::Base
 	end
 
 	before do
-		$c = Controller.instance
 		@result = {:success => true}
 	end
 
 	after do
-		$c.close
+		c.close
 	end
 
 	##### Public GET interface
@@ -50,7 +49,7 @@ class Mirror < Sinatra::Base
 	end
 
 	get '/a/:id/:password' do
-		$c.log.info("#{params[:id]} attempting to sign in with quicklogin")
+		c.log.info("#{params[:id]} attempting to sign in with quicklogin")
 		userId = User::tryGetFromId(params[:id], params[:password])
 		if(userId!=nil)
 			session[:userId] = userId
@@ -111,10 +110,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/getfeedback' do # :days, :sender, :recipient
 		begin
 			requireLoggedInUser
-			$c.log.info("User #{@user.email} fetching feedback")
+			c.log.info("User #{@user.email} fetching feedback")
 			@result[:feedback] = @user.getFeedback(params[:days], params[:sender], params[:recipient])
 		rescue Exception=>e
-			$c.log.warn("Error while #{@user.email} fetching feedback: "+e.message)
+			c.log.warn("Error while #{@user.email} fetching feedback: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -122,16 +121,16 @@ class Mirror < Sinatra::Base
 
 	get_or_post '/signin' do # :email, :password
 		begin
-			$c.log.info("#{params[:email]} attempting to sign in")
+			c.log.info("#{params[:email]} attempting to sign in")
 			userId = User::tryGet(params[:email], params[:password])
 			if(userId!=nil)
-				$c.log.info("User id is #{userId}")
+				c.log.info("User id is #{userId}")
 				session[:userId] = userId
 			else
 				fail("Incorrect email or password")
 			end
 		rescue Exception=>e
-			$c.log.warn("Error while #{params[:email]} signing in: "+e.message)
+			c.log.warn("Error while #{params[:email]} signing in: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -140,10 +139,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/editname' do # :name
 		begin
 			requireLoggedInUser
-			$c.log.info("User #{@user.email} editing name to #{params[:name]}")
+			c.log.info("User #{@user.email} editing name to #{params[:name]}")
 			@user.editName(params[:name])
 		rescue Exception=>e
-			$c.log.warn("Error while #{@user.email} changing name: "+e.message)
+			c.log.warn("Error while #{@user.email} changing name: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -152,10 +151,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/editpassword' do # :password
 		begin
 			requireLoggedInUser
-			$c.log.info("User #{@user.email} editing password")
+			c.log.info("User #{@user.email} editing password")
 			@user.editPassword(params[:password])
 		rescue Exception=>e
-			$c.log.warn("Error while #{@user.email} changing password: "+e.message)
+			c.log.warn("Error while #{@user.email} changing password: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -164,10 +163,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/editteamname' do # :name
 		begin
 			requireLoggedInUser
-			$c.log.info("User #{@user.email} editing team name to #{params[:name]}")
+			c.log.info("User #{@user.email} editing team name to #{params[:name]}")
 			@user.editTeamName(params[:name])
 		rescue Exception=>e
-			$c.log.warn("Error while #{@user.email} changing team name: "+e.message)
+			c.log.warn("Error while #{@user.email} changing team name: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -176,10 +175,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/editmembers' do # :members
 		begin
 			requireLoggedInUser
-			$c.log.info("Admin #{@user.email} editing members to #{params[:members]}")
+			c.log.info("Admin #{@user.email} editing members to #{params[:members]}")
 			@user.editMembers(params[:members])
 		rescue Exception=>e
-			$c.log.warn("Error while #{@user.email} editing members: "+e.message)
+			c.log.warn("Error while #{@user.email} editing members: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -188,10 +187,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/editbadges' do # :badges
 		begin
 			requireLoggedInUser
-			$c.log.info("Admin #{@user.email} editing badges to #{params[:badges]}")
+			c.log.info("Admin #{@user.email} editing badges to #{params[:badges]}")
 			@user.editBadges(params[:badges])
 		rescue Exception=>e
-			$c.log.warn("Error while #{@user.email} editing badges: "+e.message)
+			c.log.warn("Error while #{@user.email} editing badges: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -200,10 +199,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/editscope' do # :field, :value
 		begin
 			requireLoggedInUser
-			$c.log.info("Admin #{@user.email} changing #{params[:field]} scope to #{params[:value]}")
+			c.log.info("Admin #{@user.email} changing #{params[:field]} scope to #{params[:value]}")
 			@user.editScope(params[:field], params[:value].to_i)
 		rescue Exception=>e
-			$c.log.warn("Error while #{@user.email} changing scope: "+e.message)
+			c.log.warn("Error while #{@user.email} changing scope: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -212,10 +211,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/sendemails' do
 		begin
 			requireLoggedInUser
-			$c.log.info("Sending emails for team members administered by #{@user.email}")
+			c.log.info("Sending emails for team members administered by #{@user.email}")
 			@user.sendEmails(request.host)
 		rescue Exception=>e
-			$c.log.warn("Error while sending emails for team members of user #{@user.email}: "+e.message)
+			c.log.warn("Error while sending emails for team members of user #{@user.email}: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json
@@ -224,10 +223,10 @@ class Mirror < Sinatra::Base
 	get_or_post '/send' do # :recipient, :badges, :feedback, :anonymous
 		begin
 			requireLoggedInUser
-			$c.log.info("User #{@user.email} providing feedback for #{params[:recipient]}")
+			c.log.info("User #{@user.email} providing feedback for #{params[:recipient]}")
 			@user.giveFeedback(params[:recipient].to_i, params[:badges], params[:feedback], params[:anonymous])
 		rescue Exception=>e
-			$c.log.warn("Error while #{@user.email} giving feedback: "+e.message)
+			c.log.warn("Error while #{@user.email} giving feedback: "+e.message)
 			fail(e.message)
 		end
 		@result.to_json

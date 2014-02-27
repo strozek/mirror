@@ -46,4 +46,8 @@ module MirrorHelpers
 		end
 	end
 
+	def c
+		Controller.instance
+	end
+
 end

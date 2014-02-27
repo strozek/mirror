@@ -6,6 +6,8 @@ module MirrorHelpers
 
 	class User
 
+		include MirrorHelpers
+		
 		# Note: every user belongs to exactly 1 team. Only 1 of all of this team's members is an admin
 		attr_accessor :id, :email, :name, :passwordChanged
 		attr_accessor :teamId, :teamName
@@ -16,7 +18,7 @@ module MirrorHelpers
 
 		# For logging in, return the user ID (if password correct) or nil
 		def self.tryGet(email, password)
-			user = $c.db[:users].where(:email=>email, :password=>password).first
+			user = c.db[:users].where(:email=>email, :password=>password).first
 			if(user)
 				return user[:id]
 			else
@@ -26,7 +28,7 @@ module MirrorHelpers
 
 		# For logging in with quicklogin (first timers), return the user ID or nil
 		def self.tryGetFromId(id, password)
-			user = $c.db[:users].where(:id=>id, :password=>password).first
+			user = c.db[:users].where(:id=>id, :password=>password).first
 			if(user)
 				return user[:id]
 			else
@@ -35,18 +37,18 @@ module MirrorHelpers
 		end
 
 		def self.getDisplayName(id)
-			user = $c.db[:users].where(:id=>id).first
+			user = c.db[:users].where(:id=>id).first
 			return user[:name] || user[:email]
 		end
 
 		def self.createAdmin(email, host)
 			password = generatePassword
-			if($c.db[:users].where(:email=>email).count>0)
+			if(c.db[:users].where(:email=>email).count>0)
 				raise "User #{email} already exists"
 			end
-			userId = $c.db[:users].insert(:email=>email, :password=>password)
-			teamId = $c.db[:teams].insert(:adminId => userId, :senderScope=>1, :recipientScope=>4, :everyoneScope=>4)
-			$c.db[:teammembers].insert(:teamId => teamId, :userId => userId)
+			userId = c.db[:users].insert(:email=>email, :password=>password)
+			teamId = c.db[:teams].insert(:adminId => userId, :senderScope=>1, :recipientScope=>4, :everyoneScope=>4)
+			c.db[:teammembers].insert(:teamId => teamId, :userId => userId)
 			url = "http://#{host}/a/#{userId}/#{password}"
 			return url
 		end
@@ -58,23 +60,23 @@ module MirrorHelpers
 
 		# For admin adding members, return the user ID (creating the user if necessary)
 		def self.getOrCreate(email)
-			user = $c.db[:users].where(:email=>email).first
+			user = c.db[:users].where(:email=>email).first
 			if(user)
 				return user[:id]
 			else
-				id = $c.db[:users].insert(:email => email, :password => generatePassword)
+				id = c.db[:users].insert(:email => email, :password => generatePassword)
 				return id
 			end
 		end
 
 		def initialize(id)
-			user = $c.db[:users].where(:id => id).first
+			user = c.db[:users].where(:id => id).first
 			@id = id
 			@email = user[:email]
 			@name = user[:name]
 			@passwordChanged = user[:passwordChanged]
-			@teamId = $c.db[:teammembers].where(:userId => @id).first[:teamId]
-			team = $c.db[:teams].where(:id => @teamId).first
+			@teamId = c.db[:teammembers].where(:userId => @id).first[:teamId]
+			team = c.db[:teams].where(:id => @teamId).first
 			if(!team)
 				raise "You don't belong to any team"
 			end
@@ -82,11 +84,11 @@ module MirrorHelpers
 			@senderScope = team[:senderScope]
 			@recipientScope = team[:recipientScope]
 			@everyoneScope = team[:everyoneScope]
-			currentMembers = $c.db[:teammembers].where(:teamId => @teamId).map(:userId)
+			currentMembers = c.db[:teammembers].where(:teamId => @teamId).map(:userId)
 			emails = []
 			@membersNotMe = []
 			currentMembers.each { |memberId|
-				member = $c.db[:users].where(:id=>memberId).first
+				member = c.db[:users].where(:id=>memberId).first
 				if(memberId != @id)
 					emails.push(member[:email])
 					@membersNotMe.push({:id=>memberId, :name=>(member[:name] || member[:email])})
@@ -94,20 +96,20 @@ module MirrorHelpers
 			}
 			@membersString = emails.join(', ')
 			@badges = []
-			currentBadges = $c.db[:badges].where(:teamId => @teamId)
+			currentBadges = c.db[:badges].where(:teamId => @teamId)
 			currentBadges.each { |badge|
 				@badges.push({:id=>badge[:id], :name=>badge[:name]})
 			}
 			@badgesString = currentBadges.map(:name).join(', ')
-			@myRecentActivityCount = (@recipientScope>=3) ? $c.db[:feedback]
+			@myRecentActivityCount = (@recipientScope>=3) ? c.db[:feedback]
 				.where(:teamId => @teamId, :recipientId => @id)
 				.where{timestamp > (user[:lastMyActivityView] || 0)}.count : 0
-			@allRecentActivityCount = (@everyoneScope>=3) ? $c.db[:feedback]
+			@allRecentActivityCount = (@everyoneScope>=3) ? c.db[:feedback]
 				.where(:teamId => @teamId)
 				.where(Sequel.~(:senderId => @id))
 				.where{timestamp > (user[:lastTeamActivityView] || 0)}.count : 0
 
-			dataset = $c.db[:feedback].where(:teamId=>@teamId).where{timestamp>Time.now-30*60*60*24}
+			dataset = c.db[:feedback].where(:teamId=>@teamId).where{timestamp>Time.now-30*60*60*24}
 			@stats = {
 				:iReceived => @recipientScope>=1 ? dataset.where(:recipientId=>@id).count : nil,
 				:teamReceivedAndSent => @everyoneScope>=1 ? (dataset.count*1.0/currentMembers.count).round(1) : nil,
@@ -120,7 +122,7 @@ module MirrorHelpers
 				:teamSentByMember => @everyoneScope>=2 ? getTeamSentByMemberStats(dataset) : nil,
 				:badgesIAwarded => getBadgesIAwardedStats(dataset)
 			}
-			$c.log.info("Fetched user with id #{id} and email #{@email}")
+			c.log.info("Fetched user with id #{id} and email #{@email}")
 		end
 
 		def getReceivedByMemberStats(dataset)
@@ -140,7 +142,7 @@ module MirrorHelpers
 
 		def getTeamReceivedByMemberStats(dataset)
 			result = []
-			memberCount = $c.db[:teammembers].where(:teamId => @teamId).count
+			memberCount = c.db[:teammembers].where(:teamId => @teamId).count
 			@membersNotMe.each { |member|
 				count = dataset.where(:senderId=>member[:id], :anonymous=>'false').count
 				if(count>0)
@@ -167,7 +169,7 @@ module MirrorHelpers
 
 		def getBadgesTeamReceivedStats(dataset)
 			result = []
-			memberCount = $c.db[:teammembers].where(:teamId => @teamId).count
+			memberCount = c.db[:teammembers].where(:teamId => @teamId).count
 			@badges.each { |badge|
 				count = dataset.join(:feedbackbadges, :feedbackId=>:id).where(:badgeId=>badge[:id]).count
 				if(count>0)
@@ -190,7 +192,7 @@ module MirrorHelpers
 
 		def getTeamSentByMemberStats(dataset)
 			result = []
-			memberCount = $c.db[:teammembers].where(:teamId => @teamId).count
+			memberCount = c.db[:teammembers].where(:teamId => @teamId).count
 			@membersNotMe.each { |member|
 				count = dataset.where(:recipientId=>member[:id]).count
 				if(count>0)
@@ -232,7 +234,7 @@ module MirrorHelpers
 				for i in -29..0
 					dateFrom = Time.parse((Time.now+i*24*60*60).strftime("%Y-%m-%d"))
 					dateTo = dateFrom+24*60*60
-					count = $c.db[:feedback]
+					count = c.db[:feedback]
 						.where(:teamId=>@teamId, :recipientId=>@id)
 						.where{timestamp >= dateFrom}
 						.where{timestamp < dateTo}
@@ -247,7 +249,7 @@ module MirrorHelpers
 		end
 
 		def owner?
-			return ($c.db[:teams].where(:id => @teamId).first[:adminId] == @id)
+			return (c.db[:teams].where(:id => @teamId).first[:adminId] == @id)
 		end
 
 		def sanitize(name)
@@ -278,7 +280,7 @@ module MirrorHelpers
 			feedback = []
 
 			fromDate = (daysString=='all') ? 0 : Time.now-daysString.to_i*60*60*24
-			dataset = $c.db[:feedback].where(:teamId => @teamId).where{timestamp > fromDate}
+			dataset = c.db[:feedback].where(:teamId => @teamId).where{timestamp > fromDate}
 
 			if(senderString!='all' && senderString!='allbutme' && senderString!='anonymous')
 				dataset = dataset.where(:senderId => senderString.to_i)
@@ -293,8 +295,8 @@ module MirrorHelpers
 						(senderString!='anonymous' || feedbackItemAnonymous?(row)) &&
 						(senderString!='allbutme' || row[:senderId]!=@id))
 					badges = []
-					$c.db[:feedbackbadges].where(:feedbackId=>row[:id]).each { |badgeRow|
-						badgeName = $c.db[:badges].where(:id=>badgeRow[:badgeId]).first[:name]
+					c.db[:feedbackbadges].where(:feedbackId=>row[:id]).each { |badgeRow|
+						badgeName = c.db[:badges].where(:id=>badgeRow[:badgeId]).first[:name]
 						badges.push(badgeName)
 					}
 					startOfYear = Time.parse(Time.now.year.to_s+'-1-1')
@@ -330,29 +332,29 @@ module MirrorHelpers
 		end
 
 		def updateMyActivityView
-			$c.db[:users].where(:id => @id).update(:lastMyActivityView => Time.now)
+			c.db[:users].where(:id => @id).update(:lastMyActivityView => Time.now)
 		end
 
 		def updateTeamActivityView
-			$c.db[:users].where(:id => @id).update(:lastTeamActivityView => Time.now)
+			c.db[:users].where(:id => @id).update(:lastTeamActivityView => Time.now)
 		end
 
 		def editName(name)
 			@name = sanitize(name)
-			$c.db[:users].where(:id => @id).update(:name => name)
-			$c.log.info("Changed user name for user #{@email} to #{name}")
+			c.db[:users].where(:id => @id).update(:name => name)
+			c.log.info("Changed user name for user #{@email} to #{name}")
 		end
 
 		def editPassword(password)
-			$c.db[:users].where(:id => @id).update(:password => password, :passwordChanged => true)
-			$c.log.info("Changed password for user #{@email}")
+			c.db[:users].where(:id => @id).update(:password => password, :passwordChanged => true)
+			c.log.info("Changed password for user #{@email}")
 		end
 
 		def editTeamName(name)
 			raise "You don't administer this team" if(!owner?)
 			@teamName = sanitize(name)
-			$c.db[:teams].where(:id=>@teamId).update(:name=>@teamName)
-			$c.log.info("Changed team name for user #{@email} to #{name}")
+			c.db[:teams].where(:id=>@teamId).update(:name=>@teamName)
+			c.log.info("Changed team name for user #{@email} to #{name}")
 		end
 
 		def editMembers(membersString)
@@ -361,19 +363,19 @@ module MirrorHelpers
 			# Ensure each member specified is or becomes a part of the team
 			members.each { |member|
 				id = User::getOrCreate(member)
-				if($c.db[:teammembers].where(:teamId => @teamId, :userId => id).count==0)
-					$c.db[:teammembers].insert(:teamId => @teamId, :userId => id)
+				if(c.db[:teammembers].where(:teamId => @teamId, :userId => id).count==0)
+					c.db[:teammembers].insert(:teamId => @teamId, :userId => id)
 				end
 			}
 			# Ensure we don't have extra members
-			currentMembers = $c.db[:teammembers].where(:teamId => @teamId).map(:userId)
+			currentMembers = c.db[:teammembers].where(:teamId => @teamId).map(:userId)
 			currentMembers.each { |memberId|
-				email = $c.db[:users].where(:id=>memberId).first[:email]
+				email = c.db[:users].where(:id=>memberId).first[:email]
 				if(!members.include?(email) && memberId!=@id)
-					$c.db[:teammembers].where(:teamId => @teamId, :userId => memberId).delete
+					c.db[:teammembers].where(:teamId => @teamId, :userId => memberId).delete
 				end
 			}
-			$c.log.info("Changed membership of user #{@email} team's to #{membersString}")
+			c.log.info("Changed membership of user #{@email} team's to #{membersString}")
 		end
 
 		def editBadges(badgesString)
@@ -381,39 +383,39 @@ module MirrorHelpers
 			badges = sanitize(badgesString).split(/\s*,\s*/)
 			# Ensure each badge specified is or becomes an entry
 			badges.each { |badge|
-				if($c.db[:badges].where(:teamId => @teamId, :name => badge).count==0)
-					$c.db[:badges].insert(:teamId => @teamId, :name => badge)
+				if(c.db[:badges].where(:teamId => @teamId, :name => badge).count==0)
+					c.db[:badges].insert(:teamId => @teamId, :name => badge)
 				end
 			}
 			# Ensure we don't have extra badges
-			currentBadges = $c.db[:badges].where(:teamId => @teamId).map(:name)
+			currentBadges = c.db[:badges].where(:teamId => @teamId).map(:name)
 			currentBadges.each { |badge|
 				if(!badges.include?(badge))
-					$c.db[:badges].where(:teamId => @teamId, :name => badge).delete
+					c.db[:badges].where(:teamId => @teamId, :name => badge).delete
 				end
 			}
-			$c.log.info("Changed badges of user #{@email} team's to #{badgesString}")
+			c.log.info("Changed badges of user #{@email} team's to #{badgesString}")
 		end
 
 		def editScope(label, value)
 			raise "You don't administer this team" if(!owner?)
 			if(label=='sender')
-				$c.db[:teams].where(:id => @teamId).update(:senderScope => value)
+				c.db[:teams].where(:id => @teamId).update(:senderScope => value)
 			elsif(label=='recipient')
-				$c.db[:teams].where(:id => @teamId).update(:recipientScope => value)
+				c.db[:teams].where(:id => @teamId).update(:recipientScope => value)
 			elsif(label=='everyone')
-				$c.db[:teams].where(:id => @teamId).update(:everyoneScope => value)
+				c.db[:teams].where(:id => @teamId).update(:everyoneScope => value)
 			else
 				raise "Unknown label #{label}"
 			end
-			$c.log.info("Changed #{label} scope to #{value}")
+			c.log.info("Changed #{label} scope to #{value}")
 		end
 
 		def sendEmails(host)
 			raise "You don't administer this team" if(!owner?)
-			currentMembers = $c.db[:teammembers].where(:teamId => @teamId).map(:userId)
+			currentMembers = c.db[:teammembers].where(:teamId => @teamId).map(:userId)
 			currentMembers.each { |memberId|
-				user = $c.db[:users].where(:id=>memberId).first
+				user = c.db[:users].where(:id=>memberId).first
 				email = user[:email]
 				password = user[:password]
 				url = "http://#{host}/a/#{memberId}/#{password}"
@@ -441,7 +443,7 @@ module MirrorHelpers
 		end
 
 		def giveFeedback(recipientId, badgesString, feedbackText, anonymous)
-			feedbackId = $c.db[:feedback].insert(
+			feedbackId = c.db[:feedback].insert(
 				:teamId => @teamId,
 				:senderId => @id,
 				:recipientId => recipientId,
@@ -449,7 +451,7 @@ module MirrorHelpers
 				:timestamp => Time.now,
 				:anonymous => (@senderScope==1) ? anonymous : (@recipientScope==3))
 			badgesString.split(/,/).each { |badge|
-				$c.db[:feedbackbadges].insert(:feedbackId => feedbackId, :badgeId => badge)
+				c.db[:feedbackbadges].insert(:feedbackId => feedbackId, :badgeId => badge)
 			}
 		end
 
