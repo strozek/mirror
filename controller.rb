@@ -3,9 +3,11 @@ require 'sequel'
 
 module MirrorHelpers
 
-	class Controller
+	class C
 		@logger = nil
 		@db = nil
+
+		# Private methods
 
 		def initialize
 			@logger = Logger.new("log/mirror.log", 10, 1024000)
@@ -17,37 +19,47 @@ module MirrorHelpers
 		end
 
 		@@instance = nil
-	 
-	  def self.instance
-	    if(@@instance==nil || @@instance.hasClosed)
-	      @@instance = Controller.new
-	    end
-	    return @@instance
-	  end
-
-		def log
-			return @logger
-		end
-
-		def db
-			return @db
-		end
 
 	  def hasClosed
 	    return (@logger==nil)
 	  end
+	 
+	 	def log
+	 		@logger
+	 	end
 
-		def close
+	 	def db
+	 		@db
+	 	end
+
+	 	def close
 			@logger.debug("Controller closed.")
 	    @logger.close
 	    @logger = nil
 			@db.disconnect
 	    @db = nil
-		end
-	end
+	  end
 
-	def c
-		Controller.instance
+	  def self.instance
+	    if(@@instance==nil || @@instance.hasClosed)
+	      @@instance = C.new
+	    end
+	    return @@instance
+	  end
+
+	  # Public methods
+
+		def self.log
+			return instance.log
+		end
+
+		def self.db
+			return instance.db
+		end
+
+		def self.close
+			instance.close
+		end
 	end
 
 end
